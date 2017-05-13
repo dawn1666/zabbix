@@ -1,0 +1,55 @@
+MySQL 5.7.17 二进制安装(Centos7.x)
+
+# 安装所需依赖
+yum install wget libaio libaio-devel
+
+# 下载并解压mysql二进制包
+cd /usr/local/src
+wget https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz
+tar zxf mysql-5.7.17-linux-glibc2.5-x86_64.tar.gz
+mv mysql-5.7.17-linux-glibc2.5-x86_64 /usr/local/mysql
+echo "export PATH=$PATH:/usr/local/mysql/bin" >> /etc/profile	
+
+# 创建mysql用户
+groupadd mysql
+useradd -M -g mysql -s /sbin/nologin -d /usr/local/mysql mysql
+
+# 创建mysql目录
+mkdir -p /data/mysql
+chown -R mysql.mysql /data/mysql
+
+# 创建/etc/my.cnf配置文件
+vim /etc/my.cnf
+
+# MySQL初始化
+/usr/local/mysql/bin/mysqld --initialize
+
+# 查看日志文件获得密码
+cat /data/mysql/error.log |grep password
+2017-04-08T02:32:35.140207Z 1 [Note] A temporary password is generated for root@localhost: ZZ/yrI9UuJPY
+
+# 创建systemctl启动脚本
+vim /usr/lib/systemd/system/mysqld.service
+
+[Unit]
+Description=mysqld
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/mysql/support-files/mysql.server start
+ExecReload=/usr/local/mysql/support-files/mysql.server restart        
+ExecStop=/usr/local/mysql/support-files/mysql.server stop   
+PrivateTmp=true
+   
+[Install]  
+WantedBy=multi-user.target
+
+# 启动MySQL
+systemctl daemon-reload
+systemctl enable mysqld
+systemctl start mysqld
+
+# 登录MySQL并修改初始密码
+/usr/local/mysql/bin/mysql -S /data/mysql/mysql.sock -u root -p
+mysql> alter user user() identified by 'zabbix';
